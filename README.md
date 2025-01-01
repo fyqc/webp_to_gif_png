@@ -40,12 +40,12 @@ Please download the following Windows program for conversion purpose, if you are
    
 ```Python
 import os
-import sys
+import subprocess
 from PIL import Image, ImageSequence
 
-ROOT = r"D:\Workspace"  # Root Directory 根目录 ルートディレクトリ
-ANIMATION = r"D:\FbWebp2Gif\FbWebp2Gif.exe"  # Animation Conversion Tool Path 动画转换工具路径 アニメーション変換ツールパス
-STATIC = r"D:\libwebp-1.4.0-windows-x64\bin\dwebp.exe"  # Static WebP Conversion Tool Path 静态WebP转换工具路径 静的WebP変換ツールパス
+ROOT = r"D:\webp_to_gif_png\Workspace"  # Directory 目录 ルートディレクトリ
+ANIMATION = r"D:\webp_to_gif_png\FbWebp2Gif\FbWebp2Gif.exe"  # Animation Conversion Tool Path 动画转换工具路径 アニメーション変換ツールパス
+STATIC = r"D:\webp_to_gif_png\libwebp-1.4.0-windows-x64\bin\dwebp.exe"  # Static WebP Conversion Tool Path 静态WebP转换工具路径 静的WebP変換ツールパス
 
 def wash_gif(input):
 """
@@ -55,14 +55,18 @@ ffmpegで非標準GIFを修正し、標準GIF（ACDSee 3.2で再生可能）に�
 """
     if ".gif" in input:
         output = 'temp.gif'
-        # Execute ffmpeg command to repair GIF
         cmd = f'ffmpeg -i "{input}" "{output}"'
-        print(cmd)
-        os.system(cmd)
+        result = subprocess.run(
+            cmd, shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
+        if result.returncode != 0:
+            print("Error occurred:", result.stderr.decode())
+        
         # Fix the problem that GIFs can't be looped
         cmd = f'ffmpeg -y -i "{output}" -loop 0 "{output}"'
-        print(cmd)
-        os.system(cmd)
+        result = subprocess.run(
+            cmd, shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
+        if result.returncode != 0:
+            print("Error occurred:", result.stderr.decode())
 
 
 def is_animation(file):
@@ -92,9 +96,13 @@ WebPファイルをGIFに変換する主な機能
         # 静的なWebP画像の場合は、PNGに変換します
         save_path = webp_filepath.replace('webp', 'png')
         cmd = f'{STATIC} "{webp_filepath}" -o "{save_path}"'
-        os.system(cmd)
-        os.remove(webp_filepath)
-        sys.exit()
+        result = subprocess.run(
+            cmd, shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
+        if result.returncode != 0:
+            print("Error occurred:", result.stderr.decode())
+        else:
+            os.remove(webp_filepath)
+        return
 
     # For WebP files, convert, or leave it alone if it's a GIF
     # 对于 WebP 文件，进行转换，如果是 GIF 则不进行处理
@@ -102,10 +110,15 @@ WebPファイルをGIFに変換する主な機能
     if '.webp' in webp_filepath:
         # Convert to GIF 转换为 GIF GIFに変換する
         cmd = f"{ANIMATION} {webp_filepath}"
-        os.system(cmd)
+        print(f"正在处理  {webp_filepath}")
+        result = subprocess.run(
+            cmd, shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
+        if result.returncode != 0:
+            print("Error occurred:", result.stderr.decode())
 
         # Delete previous WebP 删除原始的 WebP 文件 元のWebPファイルを削除する
-        os.remove(webp_filepath)
+        else:
+            os.remove(webp_filepath)
 
     elif '.gif' in webp_filepath:
         # Copy original filename 复制原始文件名 元のファイル名をコピーする
@@ -125,5 +138,4 @@ if __name__ == '__main__':
     os.chdir(ROOT)
     for file in os.listdir(ROOT):    
         main(file)
-
 ```
